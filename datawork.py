@@ -15,7 +15,7 @@ import seaborn as sns
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 指定中文字体
 plt.rcParams['axes.unicode_minus'] = False   # 正常显示负号
 # 读取投票统计数据
-data = pd.read_excel(r"D:\2024presidential_campaign\harris_vs_trump.xlsx")
+data = pd.read_excel(r"harris_vs_trump.xlsx")
 cleaned_data = pd.read_csv(r"cleaned_data.csv")
 # 添加胜者字段和颜色字段
 data["Winner"] = ["Harris" if h > t else "Trump" for h, t in zip(data["Harris support"], data["Trump support"])]
