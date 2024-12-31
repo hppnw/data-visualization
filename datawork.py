@@ -480,7 +480,6 @@ main_layout = html.Div([
     html.Div(id="main-content")
 ])
 
-
 # Finance 页面布局
 finance_layout = html.Div([
     html.H1("候选人筹款分析"),
@@ -510,19 +509,20 @@ tab_layout = html.Div([
     ])
 ])
 
+# 修改后的主布局
 app.layout = html.Div([
     dcc.Location(id="page-url", refresh=False),
     html.Div(id="main-layout", children=main_layout, style={"display": "block"}),
     html.Div(id="finance-layout", children=finance_layout, style={"display": "none"}),
-    html.Div(id="state-detail-container", children=state_detail_layout, style={"display": "none"}),
+    html.Div(id="state-detail-layout", children=state_detail_layout, style={"display": "none"}),  # 修改 ID
     html.Div(id="tab-layout", children=tab_layout, style={"display": "none"})
 ])
 
-
+# 修改回调函数中的 ID
 @app.callback(
     [Output("main-layout", "style"),
      Output("finance-layout", "style"),
-     Output("state-detail-container", "style"),
+     Output("state-detail-layout", "style"),  # 修改 ID
      Output("tab-layout", "style")],
     Input("page-url", "pathname")
 )
