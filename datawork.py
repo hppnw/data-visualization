@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 指定中文字体
 plt.rcParams['axes.unicode_minus'] = False   # 正常显示负号
@@ -510,7 +511,7 @@ tab_layout = html.Div([
 ])
 
 app.layout = html.Div([
-    dcc.Location(id="url", refresh=False),
+    dcc.Location(id="page-url", refresh=False),
     html.Div(id="main-layout", children=main_layout, style={"display": "block"}),
     html.Div(id="finance-layout", children=finance_layout, style={"display": "none"}),
     html.Div(id="state-detail-container", children=state_detail_layout, style={"display": "none"}),
@@ -523,7 +524,7 @@ app.layout = html.Div([
      Output("finance-layout", "style"),
      Output("state-detail-container", "style"),
      Output("tab-layout", "style")],
-    Input("url", "pathname")
+    Input("page-url", "pathname")
 )
 def toggle_pages(pathname):
     if pathname == "/finance":
@@ -555,7 +556,7 @@ def update_state_detail(clickData):
         return {}, {}, {}
 
 @app.callback(
-    Output("url", "pathname"),
+    Output("page-url", "pathname"),
     [Input("finance-button", "n_clicks"),
      Input("us_map", "clickData"),
      Input("vote-bar-chart", "clickData")],
@@ -580,6 +581,8 @@ def navigate_to_pages(finance_click, us_map_click, bar_click):
     return "/"
 
 
-# 运行应用
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    # 使用 Render 提供的端口
+    port = int(os.environ.get("PORT", 8050))
+    # 绑定到 0.0.0.0
+    app.run_server(host="0.0.0.0", port=port)
