@@ -1,7 +1,7 @@
 import plotly.express as px
 import pandas as pd
 import dash
-from dash import Dash, dcc, html, Input, Output,callback
+from dash import Dash, dcc, html, Input, Output,callback,State
 from plotly.graph_objects import Bar, Figure
 from dash import dcc, html
 import dash_bootstrap_components as dbc
@@ -12,6 +12,7 @@ import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import us
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 指定中文字体
 plt.rcParams['axes.unicode_minus'] = False   # 正常显示负号
@@ -418,6 +419,37 @@ def create_3d_analysis_figure():
     return fig
 
 
+def create_us_time_map(state_colors=None):
+    if state_colors is None:
+        state_colors = {}
+
+    fig = go.Figure()
+
+    # 默认颜色设置（灰色表示无数据）
+    default_color = "gray"
+
+    # 遍历州，根据颜色绘制地图
+    for state in us.states.STATES:
+        color = state_colors.get(state.abbr, default_color)  # 获取州的颜色，默认灰色
+        fig.add_trace(go.Choropleth(
+            locations=[state.abbr],
+            z=[1],  # 伪数据
+            locationmode="USA-states",
+            colorscale=[[0, color], [1, color]],  # 自定义颜色
+            showscale=False  # 隐藏颜色条
+        ))
+
+    # 设置地图布局
+    fig.update_layout(
+        geo=dict(
+            scope="usa",
+            showlakes=True,
+            lakecolor="rgb(255, 255, 255)",  # 湖泊颜色
+        ),
+        margin={"l": 0, "r": 0, "t": 0, "b": 0}  # 去除多余边距
+    )
+    return fig
+
 electoral_bar = create_electoral_bar()
 house_fig, senate_fig = create_summary_charts()
 
@@ -452,6 +484,7 @@ main_layout = html.Div([
             html.Img(src=harris_image, style={"width": "150px", "height": "150px", "borderRadius": "50%", "margin": "auto"}),
             html.Img(src=harris_wordcloud, style={"width": "100%", "marginTop": "20px"}),
             html.P("Kamala Harris", style={"textAlign": "center", "fontSize": "20px"}),
+            dbc.Button("实时投票", id="time-button", color="info",style={"display": "block", "margin": "20px auto"}),
             dbc.Button("Finance", id="finance-button", color="primary", style={"display": "block", "margin": "20px auto"})
         ], style={"width": "20%", "display": "inline-block"})
     ], style={"display": "flex", "justifyContent": "center"}),
@@ -470,6 +503,16 @@ main_layout = html.Div([
         style={"textAlign": "center", "marginTop": "20px", "fontSize": "18px", "fontWeight": "bold"}
     ),
 
+    html.P(
+        "点击顶部横向条形图查看选民形象分析",
+        style={"textAlign": "center", "marginTop": "20px", "fontSize": "18px"}
+    ),
+
+    html.P(
+        "点击地图查看州投票详情",
+        style={"textAlign": "center", "marginTop": "20px", "fontSize": "18px"}
+    ),
+
     # 州详情占位符
     html.Div(id="state-detail-container", children=[
         html.Div(id="state_detail", style={"marginTop": "20px", "textAlign": "center", "fontSize": "20px"}),
@@ -478,6 +521,24 @@ main_layout = html.Div([
 
     # 主内容占位符
     html.Div(id="main-content")
+])
+
+# 修改时间选择器选项
+time_switch_layout = html.Div([
+    html.H1("实时投票", style={"textAlign": "center"}),
+
+    # 时间选择器
+    dcc.Dropdown(
+        id="time-dropdown",
+        options=[{"label": time, "value": time} for time in
+                 ["8:00 a.m.", "8:30 a.m.", "9:00 a.m.", "9:30 a.m.", "10:00 a.m.", 
+                  "11:00 a.m.", "12:00 p.m.", "1:00 p.m.", "2:00 p.m."]],
+        placeholder="请选择时间点",
+        style={"width": "50%", "margin": "20px auto"}
+    ),
+
+    # 动态地图
+    dcc.Graph(id="time-vote-map", style={"height": "500px"})
 ])
 
 # Finance 页面布局
@@ -514,26 +575,34 @@ app.layout = html.Div([
     dcc.Location(id="page-url", refresh=False),
     html.Div(id="main-layout", children=main_layout, style={"display": "block"}),
     html.Div(id="finance-layout", children=finance_layout, style={"display": "none"}),
-    html.Div(id="state-detail-layout", children=state_detail_layout, style={"display": "none"}),  # 修改 ID
-    html.Div(id="tab-layout", children=tab_layout, style={"display": "none"})
+    html.Div(id="state-detail-layout", children=state_detail_layout, style={"display": "none"}),
+    html.Div(id="tab-layout", children=tab_layout, style={"display": "none"}),
+    html.Div(id="time-switch-layout", children=time_switch_layout, style={"display": "none"}),
+
+    # 用于存储每个州的投票状态
+    dcc.Store(id="voting-status-store", data={})
 ])
+
 
 # 修改回调函数中的 ID
 @app.callback(
     [Output("main-layout", "style"),
      Output("finance-layout", "style"),
-     Output("state-detail-layout", "style"),  # 修改 ID
-     Output("tab-layout", "style")],
+     Output("state-detail-layout", "style"),
+     Output("tab-layout", "style"),
+     Output("time-switch-layout", "style")],
     Input("page-url", "pathname")
 )
 def toggle_pages(pathname):
     if pathname == "/finance":
-        return {"display": "none"}, {"display": "block"}, {"display": "none"}, {"display": "none"}
+        return {"display": "none"}, {"display": "block"}, {"display": "none"}, {"display": "none"}, {"display": "none"}
     elif pathname == "/state-detail":
-        return {"display": "none"}, {"display": "none"}, {"display": "block"}, {"display": "none"}
+        return {"display": "none"}, {"display": "none"}, {"display": "block"}, {"display": "none"}, {"display": "none"}
     elif pathname == "/tab-layout":
-        return {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "block"}
-    return {"display": "block"}, {"display": "none"}, {"display": "none"}, {"display": "none"}
+        return {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "block"}, {"display": "none"}
+    elif pathname == "/time-switch":
+        return {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "block"}
+    return {"display": "block"}, {"display": "none"}, {"display": "none"}, {"display": "none"}, {"display": "none"}
 
 @app.callback(
     [Output("state-map", "figure"),
@@ -556,30 +625,96 @@ def update_state_detail(clickData):
         return {}, {}, {}
 
 @app.callback(
+    Output("time-vote-map", "figure"),
+    [Input("time-dropdown", "value"),
+     State("voting-status-store", "data")]
+)
+def update_time_map(selected_time, stored_voting_data):
+    if not selected_time:
+        print("No time selected, returning default map.")
+        return create_us_time_map(stored_voting_data)
+
+    try:
+        voting_data = pd.read_excel(r"processed_file.xlsx")
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return create_us_time_map(stored_voting_data)
+
+    # 筛选当前时间及之前的数据
+    valid_times = ["8:00 a.m.", "8:30 a.m.", "9:00 a.m.", "9:30 a.m.", "10:00 a.m.", 
+                   "11:00 a.m.", "12:00 p.m.", "1:00 p.m.", "2:00 p.m."]
+    valid_times = valid_times[:valid_times.index(selected_time) + 1] if selected_time in valid_times else []
+
+    filtered_data = voting_data[voting_data["Time"].isin(valid_times)]
+
+    # 累积更新 state_colors
+    state_colors = stored_voting_data if stored_voting_data else {}
+    for _, row in filtered_data.iterrows():
+        if row["LeadingCandidate"] == "Trump":
+            state_colors[row["State"]] = "red"
+        elif row["LeadingCandidate"] == "Harris":
+            state_colors[row["State"]] = "blue"
+
+    # 返回更新后的地图
+    return create_us_time_map(state_colors)
+
+
+@app.callback(
+    Output("voting-status-store", "data"),
+    [Input("time-dropdown", "value"),
+     State("voting-status-store", "data")]
+)
+def save_voting_status(selected_time, stored_voting_data):
+    if not selected_time:
+        print("No time selected, clearing stored data.")
+        return {}
+
+    try:
+        voting_data = pd.read_excel(r"processed_file.xlsx")
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return {}
+
+    # 筛选当前时间及之前的数据
+    valid_times = ["8:00 a.m.", "8:30 a.m.", "9:00 a.m.", "9:30 a.m.", "10:00 a.m.", 
+                   "11:00 a.m.", "12:00 p.m.", "1:00 p.m.", "2:00 p.m."]
+    valid_times = valid_times[:valid_times.index(selected_time) + 1] if selected_time in valid_times else []
+
+    filtered_data = voting_data[voting_data["Time"].isin(valid_times)]
+
+    # 累积更新 state_colors
+    state_colors = stored_voting_data if stored_voting_data else {}
+    for _, row in filtered_data.iterrows():
+        if row["LeadingCandidate"] == "Trump":
+            state_colors[row["State"]] = "red"
+        elif row["LeadingCandidate"] == "Harris":
+            state_colors[row["State"]] = "blue"
+    return state_colors
+
+@app.callback(
     Output("page-url", "pathname"),
     [Input("finance-button", "n_clicks"),
+     Input("time-button", "n_clicks"),
      Input("us_map", "clickData"),
-     Input("vote-bar-chart", "clickData")],
-    prevent_initial_call=True
+     Input("vote-bar-chart", "clickData")]
 )
-def navigate_to_pages(finance_click, us_map_click, bar_click):
+def navigate_to_pages(finance_click, time_click, us_map_click, bar_click):
     ctx = dash.callback_context
     if not ctx.triggered:
-        return "/"
+        return "/"  # 默认返回主页
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if triggered_id == "finance-button" and finance_click:
         return "/finance"
-
-    if triggered_id == "us_map" and us_map_click:
+    elif triggered_id == "time-button" and time_click:
+        return "/time-switch"
+    elif triggered_id == "us_map" and us_map_click:
         return "/state-detail"
-
-    if triggered_id == "vote-bar-chart" and bar_click:
+    elif triggered_id == "vote-bar-chart" and bar_click:
         return "/tab-layout"
 
     return "/"
-
 
 if __name__ == "__main__":
     # 使用 Render 提供的端口
