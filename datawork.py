@@ -23,51 +23,32 @@ cleaned_data = pd.read_csv(r"cleaned_data.csv")
 data["Winner"] = ["Harris" if h > t else "Trump" for h, t in zip(data["Harris support"], data["Trump support"])]
 data["Color"] = ["blue" if winner == "Harris" else "red" for winner in data["Winner"]]
 
+
 def create_race_figure():
-    # Define the nodes
-    nodes = {
-        "label": ["White", "Black", "Latino", "Asian", "Native American", "Other",
-                  "Donald Trump", "Kamala Harris"]
+    # Define the data
+    dt = {
+        "Race": ["White", "Black", "Latino", "Asian", "Native American", "Other"],
+        "Donald Trump": [0.57, 0.13, 0.46, 0.40, 0.68, 0.52],
+        "Kamala Harris": [0.42, 0.86, 0.51, 0.55, 0.31, 0.44]
     }
+    # Create a DataFrame
+    df = pd.DataFrame(dt)
 
-    # Define the links between nodes (source -> target -> value)
-    links = [
-        {"source": 0, "target": 6, "value": 0.57},
-        {"source": 0, "target": 7, "value": 0.42},
-        {"source": 1, "target": 6, "value": 0.13},
-        {"source": 1, "target": 7, "value": 0.86},
-        {"source": 2, "target": 6, "value": 0.46},
-        {"source": 2, "target": 7, "value": 0.51},
-        {"source": 3, "target": 6, "value": 0.40},
-        {"source": 3, "target": 7, "value": 0.55},
-        {"source": 4, "target": 6, "value": 0.68},
-        {"source": 4, "target": 7, "value": 0.31},
-        {"source": 5, "target": 6, "value": 0.52},
-        {"source": 5, "target": 7, "value": 0.44}
-    ]
-
-    # Define colors for the links
-    colors = ["#1f77b4","#1f77b4", "#ff7f0e", "#ff7f0e","#2ca02c","#2ca02c", "#d62728", "#d62728","#9467bd", "#9467bd","#8c564b", "#8c564b"]
-
-    # Create Sankey chart
-    fig = go.Figure(go.Sankey(
-        node=dict(
-            pad=15,  # space between nodes
-            thickness=40,  # node thickness
-            line=dict(color="black", width=1),  # node borders
-            label=nodes["label"]  # set the labels of the nodes
-        ),
-        link=dict(
-            source=[link["source"] for link in links],  # sources
-            target=[link["target"] for link in links],  # targets
-            value=[link["value"] for link in links],  # values
-            color=colors  # link colors
-        )
-    ))
+    # Create a stacked bar chart
+    fig = px.bar(
+        df,
+        x="Race",
+        y=["Donald Trump", "Kamala Harris"],
+        title="Race Composition and Candidate Preference",
+        labels={"value": "Proportion", "variable": "Candidate"},
+        barmode="stack"
+    )
 
     fig.update_layout(
         title="Race Composition",
-        font=dict(size=10)
+        font=dict(size=10),
+        xaxis_title="Race",
+        yaxis_title="Proportion"
     )
 
     return fig
@@ -116,98 +97,82 @@ def create_education_figure():
 
 
 def create_area_type_figure():
-    # Define the nodes
-    nodes = {
-        "label": ["Urban", "Suburban", "Rural",
-                  "Donald Trump", "Kamala Harris"]
+    # Define the data
+    da = {
+        "Area Type": ["Urban", "Urban", "Suburban", "Suburban", "Rural", "Rural"],
+        "Candidate": ["Donald Trump", "Kamala Harris", "Donald Trump", "Kamala Harris", "Donald Trump", "Kamala Harris"],
+        "Proportion": [0.38, 0.60, 0.51, 0.47, 0.64, 0.34],
+        "Supporters (in millions)": [38, 60, 51, 47, 64, 34]  # Example size values for bubble size
     }
 
-    # Define the links between nodes (source -> target -> value)
-    links = [
-        {"source": 0, "target": 3, "value": 0.38},
-        {"source": 0, "target": 4, "value": 0.60},
-        {"source": 1, "target": 3, "value": 0.51},
-        {"source": 1, "target": 4, "value": 0.47},
-        {"source": 2, "target": 3, "value": 0.64},
-        {"source": 2, "target": 4, "value": 0.34},
-    ]
+    # Create a DataFrame
+    df = pd.DataFrame(da)
 
-    # Define colors for the links
-    colors = ["#1f77b4", "#1f77b4","#ff7f0e", "#ff7f0e","#2ca02c", "#2ca02c"]
+    # Create a bubble chart
+    fig = px.scatter(
+        df,
+        x="Area Type",
+        y="Proportion",
+        size="Supporters (in millions)",  # Bubble size
+        color="Candidate",
+        title="Area Type Composition of Candidate Support",
+        labels={"Proportion": "Proportion of Support", "Supporters (in millions)": "Supporters (millions)"},
+        hover_name="Candidate",  # Show candidate name on hover
+        size_max=40  # Max bubble size
+    )
 
-    # Create Sankey chart
-    fig = go.Figure(go.Sankey(
-        node=dict(
-            pad=15,  # space between nodes
-            thickness=20,  # node thickness
-            line=dict(color="black", width=0.5),  # node borders
-            label=nodes["label"]  # set the labels of the nodes
-        ),
-        link=dict(
-            source=[link["source"] for link in links],  # sources
-            target=[link["target"] for link in links],  # targets
-            value=[link["value"] for link in links],  # values
-            color=colors  # link colors
-        )
-    ))
-
+    # Update layout for better appearance
     fig.update_layout(
-        title="Area type Composition",
-        font=dict(size=10)
+        font=dict(size=10),
+        xaxis_title="Area Type",
+        yaxis_title="Proportion of Support",
+        legend_title="Candidate"
     )
 
     return fig
-
-
+    
 def create_age_gender_figure():
-    # Define the nodes
-    nodes = {
-        "label": ["Men 18-29", "Men 30-44", "Men 45-64", "Men 65 or older", "Women 18-29", "Women 30-44", "Women 45-64", "Women 65 or older",
-                  "Donald Trump", "Kamala Harris"]
+    # Define the data
+    data = {
+        "Group": ["Men 18-29", "Men 30-44", "Men 45-64", "Men 65 or older", 
+                  "Women 18-29", "Women 30-44", "Women 45-64", "Women 65 or older"],
+        "Gender": ["Men"] * 4 + ["Women"] * 4,
+        "Proportion": [0.49, 0.52, 0.59, 0.56, 0.38, 0.41, 0.50, 0.46],
+        "Candidate": ["Donald Trump"] * 8
     }
 
-    # Define the links between nodes (source -> target -> value)
-    links = [
-        {"source": 0, "target": 8, "value": 0.49},
-        {"source": 0, "target": 9, "value": 0.48},
-        {"source": 1, "target": 8, "value": 0.52},
-        {"source": 1, "target": 9, "value": 0.45},
-        {"source": 2, "target": 8, "value": 0.59},
-        {"source": 2, "target": 9, "value": 0.39},
-        {"source": 3, "target": 8, "value": 0.56},
-        {"source": 3, "target": 9, "value": 0.43},
-        {"source": 4, "target": 8, "value": 0.38},
-        {"source": 4, "target": 9, "value": 0.61},
-        {"source": 5, "target": 8, "value": 0.41},
-        {"source": 5, "target": 9, "value": 0.56},
-        {"source": 6, "target": 8, "value": 0.50},
-        {"source": 6, "target": 9, "value": 0.49},
-        {"source": 7, "target": 8, "value": 0.46},
-        {"source": 7, "target": 9, "value": 0.53},
-    ]
+    # Create a DataFrame
+    df = pd.DataFrame(data)
 
-    # Define colors for the links
-    colors = ["#1f77b4","#1f77b4", "#ff7f0e","#ff7f0e", "#2ca02c", "#2ca02c","#d62728","#d62728", "#9467bd","#9467bd", "#8c564b", "#8c564b", "#e377c2", "#e377c2", "#7f7f7f","#7f7f7f"]
+    # Define colors for each group based on the age range
+    group_colors = {
+        "18-29": "#1f77b4",
+        "30-44": "#ff7f0e",
+        "45-64": "#2ca02c",
+        "65 or older": "#d62728"
+    }
 
-    # Create Sankey chart
-    fig = go.Figure(go.Sankey(
-        node=dict(
-            pad=15,  # space between nodes
-            thickness=20,  # node thickness
-            line=dict(color="black", width=1),  # node borders
-            label=nodes["label"]  # set the labels of the nodes
-        ),
-        link=dict(
-            source=[link["source"] for link in links],  # sources
-            target=[link["target"] for link in links],  # targets
-            value=[link["value"] for link in links],  # values
-            color=colors  # link colors
-        )
-    ))
+    # Extract the age range from the group names and assign colors
+    df["Age Range"] = df["Group"].apply(lambda x: " ".join(x.split()[1:]))  # Get age range part
+    df["Color"] = df["Age Range"].apply(lambda x: group_colors.get(x, "#000000"))  # Default to black if not found
 
+    # Create pie charts, one for Men and one for Women
+    fig = px.pie(
+        df,
+        names="Group",
+        values="Proportion",
+        color="Age Range",  # Use Age Range for color
+        color_discrete_map=group_colors,  # Ensure correct colors
+        facet_col="Gender",  # Split into two pies for Men and Women
+        title="Support by Gender and Age Group",
+        labels={"Proportion": "Proportion of Support"}
+    )
+
+    # Update layout for better appearance
     fig.update_layout(
-        title="Age gender Composition",
-        font=dict(size=10)
+        font=dict(size=10),
+        legend_title="Age Group",
+        legend=dict(orientation="h", y=-0.1)
     )
 
     return fig
@@ -378,31 +343,45 @@ def create_state_fundraising_figure():
     )
     return fig
 
-# 2. 候选人筹款来源流向图
 def create_fundraising_flow_figure():
-    fig = go.Figure(
-        data=[go.Sankey(
-            node=dict(
-                pad=15,
-                thickness=20,
-                line=dict(color="black", width=0.5),
-                label=["Individual", "Party", "Other Committee", "Candidate", "Total"],
-                color=["blue", "green", "orange", "purple", "red"]
-            ),
-            link=dict(
-                source=[0, 1, 2, 3],
-                target=[4, 4, 4, 4],
-                value=[
-                    cleaned_data["Individual_Contribution"].sum(),
-                    cleaned_data["Party_Committee_Contribution"].sum(),
-                    cleaned_data["Other_Committee_Contribution"].sum(),
-                    cleaned_data["Cand_Contribution"].sum()
-                ],
-                color=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
-            )
-        )]
+    # Prepare the data
+    fundraising_data = {
+        "Source": ["Individual", "Party", "Other Committee", "Candidate"],
+        "Contribution": [
+            cleaned_data["Individual_Contribution"].sum(),
+            cleaned_data["Party_Committee_Contribution"].sum(),
+            cleaned_data["Other_Committee_Contribution"].sum(),
+            cleaned_data["Cand_Contribution"].sum()
+        ]
+    }
+
+    # Create a DataFrame
+    df = pd.DataFrame(fundraising_data)
+
+    # Create doughnut chart
+    fig = px.pie(
+        df,
+        names="Source",
+        values="Contribution",
+        title="候选人筹款来源分布",
+        color="Source",
+        color_discrete_map={
+            "Individual": "#1f77b4",
+            "Party": "#ff7f0e",
+            "Other Committee": "#2ca02c",
+            "Candidate": "#d62728"
+        },
+        hole=0.3,  # This creates the hole in the center for the doughnut chart
+        labels={"Contribution": "Total Contribution"}
     )
-    fig.update_layout(title_text="候选人筹款来源流向图", font_size=12)
+
+    # Update layout for better appearance
+    fig.update_layout(
+        font=dict(size=12),
+        legend_title="筹款来源",
+        legend=dict(orientation="h", y=-0.2)
+    )
+
     return fig
 
 # 3. 候选人筹款、支出与债务三维分析
@@ -546,7 +525,7 @@ finance_layout = html.Div([
     html.H1("候选人筹款分析"),
     dbc.Tabs([
         dbc.Tab(label="各州候选人筹款金额", children=[dcc.Graph(figure=create_state_fundraising_figure())]),
-        dbc.Tab(label="候选人筹款来源流向图", children=[dcc.Graph(figure=create_fundraising_flow_figure())]),
+        dbc.Tab(label="候选人筹款来源分布图", children=[dcc.Graph(figure=create_fundraising_flow_figure())]),
         dbc.Tab(label="候选人筹款、支出与债务三维分析", children=[dcc.Graph(figure=create_3d_analysis_figure())])
     ])
 ])
